@@ -97,7 +97,7 @@ namespace uSignalR.Transports
         {
             httpClient.Initialize(connection);
 
-            return httpClient.Get(connection.Url + "negotiate", connection.PrepareRequest, false)
+            return httpClient.Get(connection.Url + "negotiate?clientProtocol=1.3",  connection.PrepareRequest, false)
                 .Then(response => response.ReadAsString())
                 .Then(json =>
                 {
@@ -212,6 +212,11 @@ namespace uSignalR.Transports
                             }
                             connection.Groups = groupList;
                         }
+                    }
+
+                    if ((Nullable<int>) result["S"] == 1)
+                    {
+                        connection.OnInitialised();
                     }
                 }
             }

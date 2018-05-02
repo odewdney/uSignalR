@@ -37,6 +37,7 @@ namespace uSignalR
         void Disconnect();
         Task<HubResult> Send(string data);
 
+        void OnInitialised();
         void OnReceived(JToken data);
         void OnError(Exception ex);
         void OnReconnected();

@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -6,14 +8,12 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using UnityEngine;
 using uSignalR.Http;
 using uSignalR.Hubs;
 using uSignalR.Infrastructure;
 using uSignalR.Transports;
 using uTasks;
-using UnityEngine;
 
 namespace uSignalR
 {
@@ -352,11 +352,11 @@ namespace uSignalR
 
         private Task Negotiate(IClientTransport transport)
         {
-            return transport.Negotiate(this)
-                .ContinueWithNewResult(task =>
-                {
-                    var response = task.Result;
+            init = new TaskCompletionSource<bool>();
 
+            transport.Negotiate(this)
+                .Then(response =>
+                {
                     VerifyProtocolVersion(response.ProtocolVersion);
 
                     ConnectionId = response.ConnectionId;
@@ -365,15 +365,25 @@ namespace uSignalR
                     var data = OnSending();
                     StartTransport(data);
 
-                    return response;
+                    return null;
                 });
+
+            return init.Task;
         }
+
+
+        private TaskCompletionSource<bool> init;
 
         private void StartTransport(string data)
         {
             // todo: implement with task
             _transport.Start(this, data);
+        }
+
+        public void OnInitialised()
+        {
             ChangeState(ConnectionState.Connecting, ConnectionState.Connected);
+            init.TrySetResult(true);
         }
 
         private bool ChangeState(ConnectionState oldState, ConnectionState newState)
@@ -404,7 +414,7 @@ namespace uSignalR
             Version version;
             if (String.IsNullOrEmpty(versionString) ||
                 !TryParseVersion(versionString, out version) ||
-                !(version.Major == 1 && version.Minor == 2))
+                !(version.Major == 1 && version.Minor == 3))
             {
                 throw new InvalidOperationException("Incompatible protocol version.");
             }
